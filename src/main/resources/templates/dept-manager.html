@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Department Manager Management</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.7/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        body { background-color: #f8f9fa; }
+        .navbar { box-shadow: 0 2px 4px rgba(0,0,0,.1); }
+        .card { box-shadow: 0 0 10px rgba(0,0,0,.1); border: none; border-radius: 10px; }
+        .btn-action { padding: 0.25rem 0.5rem; font-size: 0.875rem; }
+        .modal-header { background-color: #0d6efd; color: white; }
+        .required::after { content: " *"; color: red; }
+        .info-card {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .manager-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,.1);
+        }
+    </style>
+</head>
+<body>
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-users"></i> Employee Management System
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav ms-auto">
+                <li class="nav-item"><a class="nav-link" href="/employees">Employees</a></li>
+                <li class="nav-item"><a class="nav-link" href="/departments">Departments</a></li>
+                <li class="nav-item"><a class="nav-link" href="/salaries">Salaries</a></li>
+                <li class="nav-item"><a class="nav-link" href="/titles">Titles</a></li>
+                <li class="nav-item"><a class="nav-link" href="/dept-emp">Dept-Employee</a></li>
+                <li class="nav-item"><a class="nav-link active" href="/dept-manager">Dept-Manager</a></li>
+                <li class="nav-item"><a class="nav-link" href="/swagger-ui.html" target="_blank">API Docs</a></li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container-fluid mt-4">
+    <!-- Main Card -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <div class="row align-items-center">
+                        <div class="col">
+                            <h4 class="mb-0"><i class="fas fa-users-cog"></i> Manager Assignments</h4>
+                        </div>
+                        <div class="col-auto">
+                            <button class="btn btn-success me-2" onclick="filterCurrent()">
+                                <i class="fas fa-filter"></i> Current Only
+                            </button>
+                            <button class="btn btn-secondary me-2" onclick="clearFilter()">
+                                <i class="fas fa-redo"></i> All Records
+                            </button>
+                            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#managerModal" onclick="openAddModal()">
+                                <i class="fas fa-plus"></i> Assign Manager
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <table id="managerTable" class="table table-striped table-hover" style="width:100%">
+                        <thead>
+                        <tr>
+                            <th>Employee No</th>
+                            <th>Department</th>
+                            <th>From Date</th>
+                            <th>To Date</th>
+                            <th>Status</th>
+                            <th>Tenure (days)</th>
+                            <th>Actions</th>
+                        </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Manager Modal -->
+<div class="modal fade" id="managerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalTitle">Assign Department Manager</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="managerForm">
+<!--                    <div class="alert alert-info">-->
+<!--                        <i class="fas fa-info-circle"></i> Assigning a manager gives leadership authority over the department.-->
+<!--                    </div>-->
+                    <div class="mb-3">
+                        <label for="empNo" class="form-label required">Employee Number</label>
+                        <input type="number" class="form-control" id="empNo" required>
+                        <small class="form-text text-muted">Manager must be an existing employee</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="deptNo" class="form-label required">Department Number</label>
+                        <input type="text" class="form-control" id="deptNo" maxlength="4" required>
+                        <small class="form-text text-muted">4-character department code (e.g., d001)</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="fromDate" class="form-label required">Start Date</label>
+                        <input type="date" class="form-control" id="fromDate" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="toDate" class="form-label required">End Date</label>
+                        <input type="date" class="form-control" id="toDate" required>
+                        <small class="form-text text-muted">Leave empty for current</small>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveManager()">
+                    <i class="fas fa-user-shield"></i> Assign Manager
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.7/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<script>
+    let table;
+    let isEditMode = false;
+    let currentEmpNo = null;
+    let currentDeptNo = null;
+
+    $(document).ready(function() {
+        table = $('#managerTable').DataTable({
+            ajax: {
+                url: '/api/dept-manager',
+                dataSrc: function(json) {
+                    if (json._embedded && json._embedded.deptManagerDTOList) {
+                        return json._embedded.deptManagerDTOList;
+                    }
+                    return json;
+                },
+                error: function(xhr, error, thrown) {
+                    console.error('Error loading data:', error);
+                    Swal.fire('Error', 'Failed to load manager assignments', 'error');
+                }
+            },
+            columns: [
+                {
+                    data: 'empNo',
+                    render: function(data) {
+                        return '<span class="manager-badge"><i class="fas fa-crown"></i> ' + data + '</span>';
+                    }
+                },
+                {
+                    data: 'deptNo',
+                    render: function(data) {
+                        return '<strong>' + data + '</strong>';
+                    }
+                },
+                { data: 'fromDate' },
+                {
+                    data: 'toDate',
+                    render: function(data) {
+                        if (data === null) {
+                            return '<span class="badge bg-success">Active</span>';
+                        }
+                        return data;
+                    }
+                },
+                {
+                    data: 'toDate',
+                    render: function(data) {
+                        const today = new Date().toISOString().split('T')[0];
+                        if (data === null || data >= today) {
+                            return '<span class="badge bg-success"><i class="fas fa-check-circle"></i> Current Manager</span>';
+                        }
+                        return '<span class="badge bg-secondary"><i class="fas fa-history"></i> Former Manager</span>';
+                    }
+                },
+                {
+                    data: null,
+                    render: function(data, type, row) {
+                        const from = new Date(row.fromDate);
+                        const to = row.toDate === null ? new Date() : new Date(row.toDate);
+                        const days = Math.floor((to - from) / (1000 * 60 * 60 * 24));
+                        const years = (days / 365).toFixed(1);
+                        return `${days} days (${years} years)`;
+                    }
+                },
+                {
+                    data: null,
+                    orderable: false,
+                    render: function(data, type, row) {
+                        return `
+                            <button class="btn btn-sm btn-info btn-action" onclick="viewEmployee(${row.empNo})" title="View Manager">
+                                <i class="fas fa-user"></i>
+                            </button>
+                            <button class="btn btn-sm btn-info btn-action" onclick="viewDepartment('${row.deptNo}')" title="View Department">
+                                <i class="fas fa-building"></i>
+                            </button>
+                            <button class="btn btn-sm btn-warning btn-action" onclick="editManager(${row.empNo}, '${row.deptNo}')" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteManager(${row.empNo}, '${row.deptNo}')" title="Remove">
+                                <i class="fas fa-user-times"></i>
+                            </button>
+                        `;
+                    }
+                }
+            ]
+        });
+    });
+
+    function openAddModal() {
+        isEditMode = false;
+        currentEmpNo = null;
+        currentDeptNo = null;
+        $('#modalTitle').text('Assign Department Manager');
+        $('#managerForm')[0].reset();
+        $('#empNo').prop('readonly', false);
+        $('#deptNo').prop('readonly', false);
+        $('#toDate').prop('readonly', false);
+    }
+
+    function editManager(empNo, deptNo) {
+        isEditMode = true;
+        currentEmpNo = empNo;
+        currentDeptNo = deptNo;
+        $('#modalTitle').text('Edit Manager Assignment');
+
+        $.get(`/api/dept-manager/employee/${empNo}`, function(response) {
+            const assignments = response._embedded ? response._embedded.deptManagerDTOList : response;
+            const assignment = assignments.find(a => a.deptNo === deptNo);
+
+            if (assignment) {
+                $('#empNo').val(assignment.empNo).prop('readonly', true);
+                $('#deptNo').val(assignment.deptNo).prop('readonly', true);
+                $('#fromDate').val(assignment.fromDate);
+                $('#toDate').val(assignment.toDate);
+                $('#managerModal').modal('show');
+            }
+        }).fail(function() {
+            Swal.fire('Error', 'Failed to load manager data', 'error');
+        });
+    }
+
+    function saveManager() {
+        const formData = {
+            empNo: parseInt($('#empNo').val()),
+            deptNo: $('#deptNo').val().trim(),
+            fromDate: $('#fromDate').val(),
+            toDate: $('#toDate').val()
+        };
+
+        if (!formData.empNo || !formData.deptNo || !formData.fromDate ) {
+            Swal.fire('Error', 'Please fill all required fields', 'error');
+            return;
+        }
+
+        if (formData.deptNo.length !== 4) {
+            Swal.fire('Error', 'Department number must be exactly 4 characters', 'error');
+            return;
+        }
+
+        const url = isEditMode
+            ? `/api/dept-manager/${currentEmpNo}/${currentDeptNo}`
+            : '/api/dept-manager';
+        const method = isEditMode ? 'PUT' : 'POST';
+
+        $.ajax({
+            url: url,
+            method: method,
+            contentType: 'application/json',
+            data: JSON.stringify(formData),
+            success: function() {
+                $('#managerModal').modal('hide');
+                table.ajax.reload();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Success!',
+                    text: isEditMode ? 'Manager assignment updated' : 'Manager assigned successfully',
+                    timer: 2000
+                });
+            },
+            error: function(xhr) {
+                const error = xhr.responseJSON;
+                const message = error && error.message ? error.message : 'An error occurred';
+                Swal.fire('Error', message, 'error');
+            }
+        });
+    }
+
+    function deleteManager(empNo, deptNo) {
+        Swal.fire({
+            title: 'Remove Manager?',
+            text: "This will remove the manager from this department!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, remove manager!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: `/api/dept-manager/${empNo}/${deptNo}`,
+                    method: 'DELETE',
+                    success: function() {
+                        table.ajax.reload();
+                        Swal.fire('Removed!', 'Manager has been removed from department.', 'success');
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON;
+                        const message = error && error.message ? error.message : 'Failed to remove manager';
+                        Swal.fire('Error', message, 'error');
+                    }
+                });
+            }
+        });
+    }
+
+    function filterCurrent() {
+        const today = new Date().toISOString().split('T')[0];
+        table.column(3).search('Active|' + today, true, false).draw();
+    }
+
+    function clearFilter() {
+        table.search('').columns().search('').draw();
+    }
+
+    function viewEmployee(empNo) {
+        window.open(`/employees?empNo=${empNo}`, '_blank');
+    }
+
+    function viewDepartment(deptNo) {
+        window.open(`/departments?deptNo=${deptNo}`, '_blank');
+    }
+
+    function viewCurrentManagers() {
+        Swal.fire({
+            title: '<i class="fas fa-crown"></i> Current Department Managers',
+            html: '<div id="current-managers"><i class="fas fa-spinner fa-spin"></i> Loading...</div>',
+            width: 700,
+            showConfirmButton: true,
+            confirmButtonText: 'Close'
+        });
+
+        const tableData = table.rows().data().toArray();
+        const today = new Date().toISOString().split('T')[0];
+        const currentManagers = tableData.filter(row =>
+            row.toDate === '9999-12-31' || row.toDate >= today
+        );
+
+        if (currentManagers.length === 0) {
+            $('#current-managers').html('<p class="text-center">No current managers found</p>');
+            return;
+        }
+
+        const managerList = currentManagers.map(manager => `
+            <tr>
+                <td><span class="manager-badge">${manager.empNo}</span></td>
+                <td><strong>${manager.deptNo}</strong></td>
+                <td>${manager.fromDate}</td>
+                <td>${Math.floor((new Date() - new Date(manager.fromDate)) / (1000 * 60 * 60 * 24))} days</td>
+            </tr>
+        `).join('');
+
+        $('#current-managers').html(`
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Manager (Emp No)</th>
+                            <th>Department</th>
+                            <th>Since</th>
+                            <th>Tenure</th>
+                        </tr>
+                    </thead>
+                    <tbody>${managerList}</tbody>
+                </table>
+            </div>
+        `);
+    }
+
+</script>
+</body>
+</html>
