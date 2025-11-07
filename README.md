@@ -1,10 +1,10 @@
 # employee-management
 Tugas Assesment membuat CRUD Employee
 
-## 🚀 How to Run
+## How to Run
 
 ### Prerequisites
-1. **Java 17 or higher**
+1. **Java 21**
    ```bash
    java -version
    ```
@@ -72,3 +72,16 @@ mvn spring-boot:run
 # Atau run JAR file
 java -jar target/employee-management-1.0.0.jar
 ```
+
+#### 6. Access Application
+Tunggu hingga aplikasi start, kemudian akses:
+- **Web UI**: http://localhost:8080/
+- **Employees Page**: http://localhost:8080/employees
+- **Departments Page**: http://localhost:8080/departments
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **API Docs JSON**: http://localhost:8080/api/
+
+### 7. DDL AUTO : Create-Drop
+- Jika Aplikasi Berhenti DataBase di hapus
+- Menggunakan Data Dumy di file data.sql, saat aplikasi dimulai akan terisi data dummy
+
